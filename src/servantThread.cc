@@ -29,6 +29,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "main.h"
 #include "servantThread.h"
@@ -169,7 +170,7 @@ void* servantThread(void * data) {
   int result;
 
   /* create socket */
-  serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+  serverSocket = socket(AF_INET6, SOCK_STREAM, 0);
   if (serverSocket < 0) {
     int errsv = errno;
     char errbuf[1024];
@@ -181,7 +182,7 @@ void* servantThread(void * data) {
 
   /* set SO_REUSEADDR to the socket */
   enable=1;
-  result = setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
+  result = setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable));
   if (result < 0) {
     int errsv = errno;
     char errbuf[1024];
@@ -192,11 +193,11 @@ void* servantThread(void * data) {
   }
 
   /* bind the socket to the TCP port */
-  struct sockaddr_in serverAddr;
+  struct sockaddr_in6 serverAddr;
   memset(&serverAddr, 0, sizeof(serverAddr));
-  serverAddr.sin_family = AF_INET;
-  serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  serverAddr.sin_port = htons(record->getPort());
+  serverAddr.sin6_family = AF_INET6;
+  serverAddr.sin6_addr = in6addr_any;
+  serverAddr.sin6_port = htons(record->getPort());
 
   result = bind(serverSocket, (struct sockaddr *)(&serverAddr), sizeof(serverAddr));
   if (result < 0) {
@@ -227,7 +228,7 @@ void* servantThread(void * data) {
     FD_SET(serverSocket, &rset);
     nReady = select(serverSocket+1, &rset, NULL, NULL, NULL);
     if (nReady == 1 && FD_ISSET(serverSocket, &rset)) {
-      struct sockaddr_in clientAddr;
+      struct sockaddr_in6 clientAddr;
       socklen_t clientAddrSize = sizeof(clientAddr);
       int clientSocket = accept(serverSocket, (struct sockaddr *) (&clientAddr), &clientAddrSize);
       if (clientSocket < 0) {

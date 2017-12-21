@@ -36,6 +36,57 @@
 #include "ums2netconfrecord.h"
 
 /**
+ * recv len bytes exactly
+ *
+ * @param sockfd socket file descriptor
+ * @param buf the buffer
+ * @param len the length of the buffer
+ * @param flags the flags
+ *
+ * @return -1 if error. 0 or less than len is EOF
+ */
+ssize_t recvn(int sockfd, void *buf, size_t len, int flags) {
+  ssize_t ret = 0;
+  char *bufC = (char *)(buf);
+  while (ret < len) {
+    ssize_t r1 = recv(sockfd, &(bufC[ret]), len-((size_t)ret), flags);
+    if (r1 < 0) {
+      /* some error */
+      int errsv = errno;
+      if (errsv == EINTR) {
+	continue;
+      } else if (errsv == EAGAIN) {
+	fd_set readfds;
+	FD_ZERO(&readfds);
+	FD_SET(sockfd, &readfds);
+	select(sockfd+1, &readfds, NULL, NULL, NULL);
+	continue;
+      } else if (errsv == EWOULDBLOCK) {
+	fd_set readfds;
+	FD_ZERO(&readfds);
+	FD_SET(sockfd, &readfds);
+	select(sockfd+1, &readfds, NULL, NULL, NULL);
+	continue;
+      }
+      if (ret == 0) {
+	ret = r1;
+	return ret;
+      }
+      char errbuf[1024];
+      char *errstr;
+      errstr = strerror_r(errsv, errbuf, sizeof(errbuf));
+      syslog(LOG_ERR, "recvn() error (%s)", errstr);
+      break;
+    } else if (r1 == 0) {
+      /* EOF */
+      break;
+    }
+    ret += (ssize_t)(r1);
+  }
+  return ret;
+}
+
+/**
  * Check if file exists
  *
  * @param filename the name of the file that needs to be checked
@@ -118,7 +169,7 @@ void clientServant(int clientSocket, const std::map<std::string, std::string> &d
   /* copy data from socket to device */
   while (!quitFlag) {
     ssize_t writeBufLen = 0;
-    bufLen = recv(clientSocket, buf, bufSize, 0);
+    bufLen = recvn(clientSocket, buf, bufSize, 0);
     if (bufLen == 0) {
       syslog(LOG_DEBUG, "read from client socket ended");
       break;
@@ -128,6 +179,7 @@ void clientServant(int clientSocket, const std::map<std::string, std::string> &d
       char *errstr;
       errstr = strerror_r(errsv, errbuf, sizeof(errbuf));
       syslog(LOG_DEBUG, "read from client socket ended (%s)", errstr);
+      break;
     }
     writeBufLen = write(outFD,buf,bufLen);
     if (writeBufLen < 0) {
@@ -139,6 +191,9 @@ void clientServant(int clientSocket, const std::map<std::string, std::string> &d
       break;
     }
     totalLen += writeBufLen;
+    if (bufLen < bufSize) {
+      break;
+    }
   }
 
   /* free the buf */

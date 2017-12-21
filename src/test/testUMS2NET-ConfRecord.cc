@@ -1,3 +1,20 @@
+/*
+ *  Copyright (C) 2017 Linaro
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <string>
 #include <cppunit/TestCase.h>
 #include <cppunit/TestFixture.h>
@@ -50,29 +67,49 @@ public:
   }
 
 protected:
+  /**
+   * test for getPort() member function
+   */
   void testGetPort() {
     CPPUNIT_ASSERT_EQUAL(record1->getPort(), port1);
     CPPUNIT_ASSERT_EQUAL(record2->getPort(), port2);
     CPPUNIT_ASSERT_EQUAL(record3->getPort(), port3);
   }
 
+  /**
+   * test for getDDParameter() member function
+   */
   void testGetDDParameter() {
     CPPUNIT_ASSERT(record1->getDDParameter().compare(dd1)==0);
     CPPUNIT_ASSERT(record2->getDDParameter().compare(dd2)==0);
     CPPUNIT_ASSERT(record3->getDDParameter().compare(dd3)==0);
   }
 
+  /**
+   * test for getDDParameterVector() member function
+   */
   void testGetDDParameterVector() {
     std::vector<std::string> vector1 = record1->getDDParameterVector();
     std::vector<std::string> vector2 = record2->getDDParameterVector();
     std::vector<std::string> vector3 = record3->getDDParameterVector();
-    
+
     CPPUNIT_ASSERT_EQUAL((int)vector1.size(), 1);
     CPPUNIT_ASSERT_EQUAL((int)vector2.size(), 2);
     CPPUNIT_ASSERT_EQUAL((int)vector3.size(), 3);
+
+    /* when the size equals to 1, then it should be as same as whole */
     CPPUNIT_ASSERT(vector1[0].compare(dd1)==0);
+
+    CPPUNIT_ASSERT(vector2[0].compare(std::string("of=/tmp/f10000"))==0);
+    CPPUNIT_ASSERT(vector2[1].compare(std::string("bs=2048"))==0);
+    CPPUNIT_ASSERT(vector3[0].compare(std::string("of=/tmp/f11111"))==0);
+    CPPUNIT_ASSERT(vector3[1].compare(std::string("bs=1024"))==0);
+    CPPUNIT_ASSERT(vector3[2].compare(std::string("seek=1"))==0);
   }
 
+  /**
+   * test for getDDParameterMap() member function
+   */
   void testGetDDParameterMap() {
     std::map<std::string, std::string> map1 = record1->getDDParameterMap();
     std::map<std::string, std::string> map2 = record2->getDDParameterMap();

@@ -31,7 +31,10 @@
 #include "main.h"
 #include "configReader.h"
 #include "servantThread.h"
+#include "../include/config.h"
 
+static int debug=0;
+static int detach=1;
 int quitFlag=0;
 
 /**
@@ -83,15 +86,18 @@ void joinServantThreads() {
   }
 }
 
-
 int main(int argc, char **argv) {
   std::string configFilename;
   int opt;
 
-  while ((opt = getopt(argc, argv, "c:")) != -1) {
+  while ((opt = getopt(argc, argv, "dc:")) != -1) {
     switch(opt) {
     case 'c':
       configFilename = std::string(optarg);
+      break;
+    case 'd':
+      detach = 0;
+      debug = 1;
       break;
     default:
       usage(argv[0]);
@@ -102,11 +108,50 @@ int main(int argc, char **argv) {
     usage(argv[0]);
     exit(1);
   }
+  if (debug && !detach) {
+    openlog(PROJECT_NAME, LOG_PID | LOG_CONS | LOG_PERROR, LOG_DAEMON);
+  } else if (detach) {
+    openlog(PROJECT_NAME, LOG_PID | LOG_CONS, LOG_DAEMON);
+  }
   std::vector<UMS2NETConfRecord> confRecords = getConfig(configFilename);
   if (confRecords.size() <= 0) {
     syslog(LOG_WARNING, "No activate config. Quit immediately");
     exit(0);
   }
+
+  if (detach) {
+    int pid;
+
+    syslog(LOG_NOTICE, "%s startup", PROJECT_NAME);
+    if ((pid = fork()) > 0) {
+      exit(0);
+    } else if (pid < 0) {
+      int errsv = errno;
+      syslog(LOG_ERR, "Error forking first fork: %s", strerror(errsv));
+      exit(1);
+    } else {
+      /* setsid() is necessary if we really want to demonize */
+      setsid();
+      /* Second fork to really deamonize me. */
+      if ((pid = fork()) > 0) {
+	exit(0);
+      } else if (pid < 0) {
+	int errsv = errno;
+	syslog(LOG_ERR, "Error forking second fork: %s", strerror(errsv));
+	exit(1);
+      }
+    }
+    /* Close all my standard I/O. */
+    if (chdir("/") < 0) {
+      int errsv = errno;
+      syslog(LOG_ERR, "unable to chdir to '/': %s", strerror(errsv));
+      exit(1);
+    }
+    close(0);
+    close(1);
+    close(2);
+  }
+
   startServantThreads(confRecords);
   joinServantThreads();
   return 0;

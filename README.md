@@ -19,12 +19,12 @@ USB mass storage device.
  3. Run "ums2net -c <ConfigFile>". ums2net will become a daemon in the
     background. For debugging please add "-d" option to avoid detach.
  4. Use nc to write your image to the USB Mass Storage device. For example,
-    "nc localhost:29543 < warp7.img"
+    "nc localhost 29543 < warp7.img"
 
 ## Config file
 
 Each line in the config file maps a TCP port to a device. All the options are
-seperated by space. The first argument is a number represents the TCP port.
+separated by space. The first argument is a number represents the TCP port.
 And the rest of the arguments are in dd-style. For example,
 
 A line in the config file:

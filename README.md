@@ -19,7 +19,7 @@ USB mass storage device.
  3. Run "ums2net -c <ConfigFile>". ums2net will become a daemon in the
     background. For debugging please add "-d" option to avoid detach.
  4. Use nc to write your image to the USB Mass Storage device. For example,
-    "nc localhost 29543 < warp7.img"
+    "nc -N localhost 29543 < warp7.img"
 
 ## Config file
 

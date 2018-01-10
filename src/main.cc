@@ -31,7 +31,6 @@
 #include "main.h"
 #include "configReader.h"
 #include "servantThread.h"
-#include "../include/config.h"
 
 static int debug=0;
 static int detach=1;

@@ -52,7 +52,13 @@ public:
     filename = strdup("ums2net-testUMS2NET-ConfigReader-XXXXXX");
     fd = mkstemp(filename);
     for (int i=0; i<sizeof(data)/sizeof(data[0]); i++) {
-      write(fd, data[i], strlen(data[i]));
+      ssize_t w1;
+      w1 = write(fd, data[i], strlen(data[i]));
+      if (w1 == -1) {
+	int errsv = errno;
+	fprintf(stderr, "Error write to file (%s)", strerror(errsv));
+	break;
+      }
     }
     sync();
   }

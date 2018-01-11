@@ -18,6 +18,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <fstream>
 
 #include <cstdio>
 #include <cstdlib>
@@ -27,6 +28,7 @@
 #include <getopt.h>
 #include <pthread.h>
 #include <syslog.h>
+#include <signal.h>
 
 #include "main.h"
 #include "configReader.h"
@@ -35,7 +37,7 @@
 
 static int debug=0;
 static int detach=1;
-int quitFlag=0;
+volatile int quitFlag=0;
 
 /**
  * print usage
@@ -45,8 +47,23 @@ int quitFlag=0;
  * @return always 0
  */
 int usage(const char *prog) {
-  std::cerr << "Usage: " << prog << " -c <configFile>" << std::endl;
+  std::cerr << "Usage: " << prog << " -c <configFile> [-d] [-P <pidFile>]" << std::endl;
   return 0;
+}
+
+void makePIDFile(const std::string &pidfile) {
+  std::ofstream fout;
+  fout.open(pidfile.c_str(), std::ofstream::out | std::ofstream::trunc);
+  if (!fout) {
+    int errsv = errno;
+    char errbuf[1024];
+    char *errstr;
+    errstr = strerror_r(errsv, errbuf, sizeof(errbuf));
+    syslog(LOG_WARNING, "Error opening pidfile '%s': %s, pidfile not created", pidfile.c_str(), errstr);
+    return;
+  }
+  fout << getpid() << std::endl;
+  fout.close();
 }
 
 std::vector<pthread_t> threads;
@@ -86,11 +103,16 @@ void joinServantThreads() {
   }
 }
 
+void sigINTHandler(void) {
+  quitFlag=1;
+}
+
 int main(int argc, char **argv) {
   std::string configFilename;
   int opt;
+  std::string pidFilename;
 
-  while ((opt = getopt(argc, argv, "dc:")) != -1) {
+  while ((opt = getopt(argc, argv, "dc:P:")) != -1) {
     switch(opt) {
     case 'c':
       configFilename = std::string(optarg);
@@ -98,6 +120,9 @@ int main(int argc, char **argv) {
     case 'd':
       detach = 0;
       debug = 1;
+      break;
+    case 'P':
+      pidFilename = std::string(optarg);
       break;
     default:
       usage(argv[0]);
@@ -150,6 +175,11 @@ int main(int argc, char **argv) {
     close(0);
     close(1);
     close(2);
+  }
+
+  /* write pid file */
+  if (pidFilename.length() > 0) {
+    makePIDFile(pidFilename);
   }
 
   startServantThreads(confRecords);

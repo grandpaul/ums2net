@@ -18,6 +18,6 @@
 #ifndef _HEADER_UMS2NET_MAIN_HEAD1_H
 #define _HEADER_UMS2NET_MAIN_HEAD1_H
 
-extern int quitFlag;
+extern volatile int quitFlag;
 
 #endif /* _HEADER_UMS2NET_MAIN_HEAD1_H */

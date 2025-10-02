@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.5)
+cmake_minimum_required (VERSION 3.10)
 project (ums2net)
 set (ums2net_VERSION_MAJOR 0)
 set (ums2net_VERSION_MINOR 1)
